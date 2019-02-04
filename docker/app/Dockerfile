@@ -1,6 +1,5 @@
 FROM php:7.1-apache
-
-MAINTAINER dereck.zenda@gmail.com
+MAINTAINER Dereck Zenda<dereck.zenda@gmail.com>
 
 # Enable URL rewriting in .htaccess files
 RUN a2enmod rewrite

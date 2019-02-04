@@ -1,5 +1,5 @@
 FROM ubuntu:latest
-MAINTAINER leafney "babycoolzx@126.com"
+MAINTAINER Dereck Zenda<dereck.zenda@gmail.com>
 
 RUN echo "deb http://cn.archive.ubuntu.com/ubuntu/ xenial main restricted universe multiverse" >> /etc/apt/sources.list
 
@@ -13,14 +13,12 @@ RUN apt-get update && \
 	mkdir -p /var/log/mysql && \
 	chown -R mysql:mysql /var/lib/mysql && \
 	chown -R mysql:mysql /var/run/mysqld && \
-	chown -R mysql:mysql /var/log/mysql
-
+	chown -R mysql:mysql /var/log/mysql \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # UTF-8 and bind-address
-RUN sed -i -e "$ a [client]\n\n[mysql]\n\n[mysqld]"  /etc/mysql/my.cnf && \
-	sed -i -e "s/\(\[client\]\)/\1\ndefault-character-set = utf8/g" /etc/mysql/my.cnf && \
-	sed -i -e "s/\(\[mysql\]\)/\1\ndefault-character-set = utf8/g" /etc/mysql/my.cnf && \
-	sed -i -e "s/\(\[mysqld\]\)/\1\ninit_connect='SET NAMES utf8'\ncharacter-set-server = utf8\ncollation-server=utf8_unicode_ci\nbind-address = 0.0.0.0/g" /etc/mysql/my.cnf
+COPY ./my.cnf /etc/mysql/my.cnf
 
 VOLUME /var/lib/mysql
 
