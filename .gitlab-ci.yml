@@ -44,16 +44,51 @@ test:
   <<: *deploy
   stage: test
   script:
+  script:
+    - apk add --no-cache curl
+    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+    - chmod +x ./kubectl
+    - mv ./kubectl /usr/local/bin/kubectl
+    - curl -LO https://storage.googleapis.com/kubernetes-helm/helm-v2.12.3-linux-amd64.tar.gz
+    - tar zxf helm-v2.12.3-linux-amd64.tar.gz
+    - chmod +x linux-amd64/helm && mv linux-amd64/helm /usr/local/bin/helm
+    - kubectl config set-cluster nosebit --server="$KUBE_URL" --insecure-skip-tls-verify=true
+    - kubectl config set-credentials admin --username="$KUBE_USER" --password="$KUBE_PASSWORD"
+    - kubectl config set-context default --cluster=test --user=admin
+    - kubectl config use-context v1-apps
     - helm install wordpress-app ./templates/values.yml --namespace v1-apps-test
 
 staging:
   <<: *deploy
-  stage: test
+  stage: staging
   script:
+    - apk add --no-cache curl
+    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+    - chmod +x ./kubectl
+    - mv ./kubectl /usr/local/bin/kubectl
+    - curl -LO https://storage.googleapis.com/kubernetes-helm/helm-v2.12.3-linux-amd64.tar.gz
+    - tar zxf helm-v2.12.3-linux-amd64.tar.gz
+    - chmod +x linux-amd64/helm && mv linux-amd64/helm /usr/local/bin/helm
+    - kubectl config set-cluster nosebit --server="$KUBE_URL" --insecure-skip-tls-verify=true
+    - kubectl config set-credentials admin --username="$KUBE_USER" --password="$KUBE_PASSWORD"
+    - kubectl config set-context default --cluster=staging --user=admin
+    - kubectl config use-context v1-apps-uat
     - helm install wordpress-app ./templates/values.yml --namespace v1-apps-uat
 
 production:
   <<: *deploy
-  stage: test
+  stage: production
   script:
+    - apk add --no-cache curl
+    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+    - chmod +x ./kubectl
+    - mv ./kubectl /usr/local/bin/kubectl
+    - curl -LO https://storage.googleapis.com/kubernetes-helm/helm-v2.12.3-linux-amd64.tar.gz
+    - tar zxf helm-v2.12.3-linux-amd64.tar.gz
+    - chmod +x linux-amd64/helm && mv linux-amd64/helm /usr/local/bin/helm
+    - kubectl config set-cluster nosebit --server="$KUBE_URL" --insecure-skip-tls-verify=true
+    - kubectl config set-credentials admin --username="$KUBE_USER" --password="$KUBE_PASSWORD"
+    - kubectl config set-context default --cluster=production --user=admin
+    - kubectl config use-context v1-apps-prod
     - helm install wordpress-app ./templates/values.yml --namespace v1-apps-prod
+  when: manual
