@@ -1,93 +1,59 @@
-+# This file is a template, and might need editing before it works on your project.
-image: ayufan/openshift-cli
-
 stages:
+  - build
+  - validate
+  - deploy
   - test
-  - review
   - staging
   - production
-  - cleanup
+  
+build_db:
+  image: registry.gitlab.com/dereck.zenda/mysql:latest
+  stage: build
+  script:
 
-variables:
-  OPENSHIFT_SERVER: openshift.default.svc.cluster.local
-  # OPENSHIFT_DOMAIN: apps.example.com
-  # Configure this variable in Secure Variables:
-  # OPENSHIFT_TOKEN: my.openshift.token
+build_app:
+  image: registry.gitlab.com/dereck.zenda/wordpress:latest
+  stage: build
+  script:
+    
+build_cache:
+  image: registry.gitlab.com/dereck.zenda/redis:latest
+  stage: build
+  script:
 
-test1:
-  stage: test
+testing_app:
+  stage: validate
   before_script: []
   script:
     - echo run tests
 
-test2:
-  stage: test
+testing_db:
+  stage: validate
   before_script: []
   script:
     - echo run tests
 
-.deploy: &deploy
-  before_script:
-    - oc login "$OPENSHIFT_SERVER" --token="$OPENSHIFT_TOKEN" --insecure-skip-tls-verify
-    - oc project "$CI_PROJECT_NAME-$CI_PROJECT_ID" 2> /dev/null || oc new-project "$CI_PROJECT_NAME-$CI_PROJECT_ID"
+testing_cache:
+  stage: validate
+  before_script: []
   script:
-    - "oc get services $APP 2> /dev/null || oc new-app . --name=$APP --strategy=docker"
-    - "oc start-build $APP --from-dir=. --follow || sleep 3s && oc start-build $APP --from-dir=. --follow"
-    - "oc get routes $APP 2> /dev/null || oc expose service $APP --hostname=$APP_HOST"
+    - echo run tests
 
-review:
-  <<: *deploy
-  stage: review
-  variables:
-    APP: review-$CI_COMMIT_REF_NAME
-    APP_HOST: $CI_PROJECT_NAME-$CI_ENVIRONMENT_SLUG.$OPENSHIFT_DOMAIN
-  environment:
-    name: review/$CI_COMMIT_REF_NAME
-    url: http://$CI_PROJECT_NAME-$CI_ENVIRONMENT_SLUG.$OPENSHIFT_DOMAIN
-    on_stop: stop-review
-  only:
-    - branches
-  except:
-    - master
 
-stop-review:
+test:
   <<: *deploy
-  stage: cleanup
+  stage: test
   script:
-    - oc delete all -l "app=$APP"
-  when: manual
-  variables:
-    APP: review-$CI_COMMIT_REF_NAME
-    GIT_STRATEGY: none
-  environment:
-    name: review/$CI_COMMIT_REF_NAME
-    action: stop
-  only:
-    - branches
-  except:
-    - master
+    - helm install wordpress-app ./templates/values.yml --namespace v1-apps-test
 
 staging:
   <<: *deploy
-  stage: staging
-  variables:
-    APP: staging
-    APP_HOST: $CI_PROJECT_NAME-staging.$OPENSHIFT_DOMAIN
-  environment:
-    name: staging
-    url: http://$CI_PROJECT_NAME-staging.$OPENSHIFT_DOMAIN
-  only:
-    - master
+  stage: test
+  script:
+    - helm install wordpress-app ./templates/values.yml --namespace v1-apps-uat
 
 production:
   <<: *deploy
-  stage: production
-  variables:
-    APP: production
-    APP_HOST: $CI_PROJECT_NAME.$OPENSHIFT_DOMAIN
-  when: manual
-  environment:
-    name: production
-    url: http://$CI_PROJECT_NAME.$OPENSHIFT_DOMAIN
-  only:
-    - master
+  stage: test
+  script:
+    - helm install wordpress-app ./templates/values.yml --namespace v1-apps-prod
